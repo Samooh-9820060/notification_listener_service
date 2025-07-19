@@ -51,6 +51,8 @@ class ServiceNotificationEvent {
   /// the content of the notification
   String? content;
 
+  int? timestamp;
+
   ServiceNotificationEvent({
     this.id,
     this.canReply,
@@ -62,19 +64,21 @@ class ServiceNotificationEvent {
     this.appIcon,
     this.largeIcon,
     this.content,
+    this.timestamp,
   });
 
   ServiceNotificationEvent.fromMap(Map<dynamic, dynamic> map) {
-    id = map['id'];
-    canReply = map['canReply'];
-    haveExtraPicture = map['haveExtraPicture'];
-    hasRemoved = map['hasRemoved'];
-    extrasPicture = map['notificationExtrasPicture'];
-    packageName = map['packageName'];
+    id = map['notification_id'];
+    canReply = map['can_reply_to_it'];
+    haveExtraPicture = map['contain_image'];
+    hasRemoved = map['is_removed'];
+    extrasPicture = map['extras_picture'];
+    packageName = map['package_name'];
     title = map['title'];
-    appIcon = map['appIcon'];
-    largeIcon = map['largeIcon'];
-    content = map['content'];
+    appIcon = map['notifications_icon'];
+    largeIcon = map['notifications_large_icon'];
+    content = map['message'];
+    timestamp = map['notification_time'];
   }
 
   /// send a direct message reply to the incoming notification
@@ -91,16 +95,25 @@ class ServiceNotificationEvent {
     }
   }
 
+  DateTime? get humanTime {
+    if (timestamp != null && timestamp! > 0) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp!).toLocal();
+    }
+    return null;
+  }
+
   @override
   String toString() {
-    return '''ServiceNotificationEvent(
+      return '''ServiceNotificationEvent(
       id: $id
-      can reply: $canReply
+      canReply: $canReply
       packageName: $packageName
       title: $title
       content: $content
       hasRemoved: $hasRemoved
       haveExtraPicture: $haveExtraPicture
-      ''';
+      timestamp: $timestamp
+      humanTime: $humanTime
+    )''';
   }
 }

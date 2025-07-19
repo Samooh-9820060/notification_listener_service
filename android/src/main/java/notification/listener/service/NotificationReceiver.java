@@ -27,6 +27,7 @@ public class NotificationReceiver extends BroadcastReceiver {
         String packageName = intent.getStringExtra(PACKAGE_NAME);
         String title = intent.getStringExtra(NOTIFICATION_TITLE);
         String content = intent.getStringExtra(NOTIFICATION_CONTENT);
+        long timestamp = intent.getLongExtra(NOTIFICATION_TIME, 0);
         byte[] notificationIcon = intent.getByteArrayExtra(NOTIFICATIONS_ICON);
         byte[] notificationExtrasPicture = intent.getByteArrayExtra(EXTRAS_PICTURE);
         byte[] largeIcon = intent.getByteArrayExtra(NOTIFICATIONS_LARGE_ICON);
@@ -41,6 +42,7 @@ public class NotificationReceiver extends BroadcastReceiver {
         data.put("packageName", packageName);
         data.put("title", title);
         data.put("content", content);
+        data.put("timestamp", timestamp);
         data.put("notificationIcon", notificationIcon);
         data.put("notificationExtrasPicture", notificationExtrasPicture);
         data.put("haveExtraPicture", haveExtraPicture);

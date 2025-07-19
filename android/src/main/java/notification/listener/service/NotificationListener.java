@@ -59,48 +59,31 @@ public class NotificationListener extends NotificationListenerService {
 
     @RequiresApi(api = VERSION_CODES.KITKAT)
     private void handleNotification(StatusBarNotification notification, boolean isRemoved) {
-        String packageName = notification.getPackageName();
-        Bundle extras = notification.getNotification().extras;
-        byte[] appIcon = getAppIcon(packageName);
-        byte[] largeIcon = null;
-        Action action = NotificationUtils.getQuickReplyAction(notification.getNotification(), packageName);
-
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.M) {
-            largeIcon = getNotificationLargeIcon(getApplicationContext(), notification.getNotification());
-        }
-
         Intent intent = new Intent(NotificationConstants.INTENT);
-        intent.putExtra(NotificationConstants.PACKAGE_NAME, packageName);
-        intent.putExtra(NotificationConstants.ID, notification.getId());
-        intent.putExtra(NotificationConstants.CAN_REPLY, action != null);
+        Map<String, Object> data = buildNotificationDataMap(notification, isRemoved);
 
-        if (NotificationUtils.getQuickReplyAction(notification.getNotification(), packageName) != null) {
-            cachedNotifications.put(notification.getId(), action);
-        }
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
 
-        intent.putExtra(NotificationConstants.NOTIFICATIONS_ICON, appIcon);
-        intent.putExtra(NotificationConstants.NOTIFICATIONS_LARGE_ICON, largeIcon);
-
-        if (extras != null) {
-            CharSequence title = extras.getCharSequence(Notification.EXTRA_TITLE);
-            CharSequence text = extras.getCharSequence(Notification.EXTRA_TEXT);
-
-            intent.putExtra(NotificationConstants.NOTIFICATION_TITLE, title == null ? null : title.toString());
-            intent.putExtra(NotificationConstants.NOTIFICATION_CONTENT, text == null ? null : text.toString());
-            intent.putExtra(NotificationConstants.IS_REMOVED, isRemoved);
-            intent.putExtra(NotificationConstants.HAVE_EXTRA_PICTURE, extras.containsKey(Notification.EXTRA_PICTURE));
-
-            if (extras.containsKey(Notification.EXTRA_PICTURE)) {
-                Bitmap bmp = (Bitmap) extras.get(Notification.EXTRA_PICTURE);
-                if (bmp != null) {
-                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                    bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                    intent.putExtra(NotificationConstants.EXTRAS_PICTURE, stream.toByteArray());
-                } else {
-                    Log.w("NotificationListener", "Notification.EXTRA_PICTURE exists but is null.");
-                }
+            if (value instanceof byte[]) {
+                byte[] byteArray = (byte[]) value;
+                intent.putExtra(key, byteArray);
+            } else if (value instanceof Boolean) {
+                Boolean boolValue = (Boolean) value;
+                intent.putExtra(key, boolValue);
+            } else if (value instanceof Integer) {
+                Integer intValue = (Integer) value;
+                intent.putExtra(key, intValue);
+            } else if (value instanceof Long) {
+                Long longValue = (Long) value;
+                intent.putExtra(key, longValue);
+            } else if (value instanceof String) {
+                String stringValue = (String) value;
+                intent.putExtra(key, stringValue);
             }
         }
+
         sendBroadcast(intent);
     }
 
@@ -144,22 +127,58 @@ public class NotificationListener extends NotificationListenerService {
         StatusBarNotification[] activeNotifications = getActiveNotifications();
 
         for (StatusBarNotification sbn : activeNotifications) {
-            Map<String, Object> notifData = new HashMap<>();
-            Notification notification = sbn.getNotification();
-            Bundle extras = notification.extras;
-
-            notifData.put("id", sbn.getId());
-            notifData.put("packageName", sbn.getPackageName());
-            notifData.put("title", extras.getCharSequence(Notification.EXTRA_TITLE) != null
-                    ? extras.getCharSequence(Notification.EXTRA_TITLE).toString()
-                    : null);
-            notifData.put("content", extras.getCharSequence(Notification.EXTRA_TEXT) != null
-                    ? extras.getCharSequence(Notification.EXTRA_TEXT).toString()
-                    : null);
-
+            Map<String, Object> notifData = buildNotificationDataMap(sbn, false);
             notificationList.add(notifData);
         }
+
         return notificationList;
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    private Map<String, Object> buildNotificationDataMap(StatusBarNotification sbn, boolean isRemoved) {
+        Map<String, Object> data = new HashMap<>();
+        Notification notification = sbn.getNotification();
+        String packageName = sbn.getPackageName();
+        Bundle extras = notification.extras;
+
+        byte[] appIcon = getAppIcon(packageName);
+        byte[] largeIcon = null;
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.M) {
+            largeIcon = getNotificationLargeIcon(getApplicationContext(), notification);
+        }
+
+        Action action = NotificationUtils.getQuickReplyAction(notification, packageName);
+        if (action != null) {
+            cachedNotifications.put(sbn.getId(), action);
+        }
+
+        data.put(NotificationConstants.ID, sbn.getId());
+        data.put(NotificationConstants.PACKAGE_NAME, packageName);
+        data.put(NotificationConstants.CAN_REPLY, action != null);
+        data.put(NotificationConstants.NOTIFICATIONS_ICON, appIcon);
+        data.put(NotificationConstants.NOTIFICATIONS_LARGE_ICON, largeIcon);
+        data.put(NotificationConstants.NOTIFICATION_TIME, sbn.getPostTime());
+        data.put(NotificationConstants.IS_REMOVED, isRemoved);
+
+        if (extras != null) {
+            CharSequence title = extras.getCharSequence(Notification.EXTRA_TITLE);
+            CharSequence text = extras.getCharSequence(Notification.EXTRA_TEXT);
+            data.put(NotificationConstants.NOTIFICATION_TITLE, title != null ? title.toString() : null);
+            data.put(NotificationConstants.NOTIFICATION_CONTENT, text != null ? text.toString() : null);
+            data.put(NotificationConstants.HAVE_EXTRA_PICTURE, extras.containsKey(Notification.EXTRA_PICTURE));
+
+            if (extras.containsKey(Notification.EXTRA_PICTURE)) {
+                Bitmap bmp = (Bitmap) extras.get(Notification.EXTRA_PICTURE);
+                if (bmp != null) {
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    data.put(NotificationConstants.EXTRAS_PICTURE, stream.toByteArray());
+                } else {
+                    Log.w("NotificationListener", "Notification.EXTRA_PICTURE exists but is null.");
+                }
+            }
+        }
+
+        return data;
+    }
 }
